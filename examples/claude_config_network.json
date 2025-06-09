@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "gemini": {
+      "url": "http://localhost:8000",
+      "transport": "sse"
+    }
+  }
+}

@@ -139,9 +139,20 @@ Completely quit and restart Claude Desktop for the changes to take effect.
 
 ### 5. Connect to Claude Code
 
-To use the server in Claude Code, run:
+**Option A: Use the same configuration from Claude Desktop**
 ```bash
 claude mcp add-from-claude-desktop -s user
+```
+
+**Option B: Connect to Network Mode (Docker or standalone)**
+If you're running the network server (via Docker or directly), connect using:
+```bash
+claude mcp add --transport sse gemini http://localhost:8000/sse
+```
+
+For Docker with a custom port (e.g., 8899):
+```bash
+claude mcp add --transport sse gemini http://localhost:8899/sse
 ```
 
 ### 6. Start Using It!
@@ -781,6 +792,8 @@ This creates a sandbox limiting file access to only that directory and its subdi
 
 ## Installation
 
+### Option 1: Traditional Installation
+
 1. Clone the repository:
    ```bash
    git clone https://github.com/BeehiveInnovations/gemini-mcp-server.git
@@ -801,6 +814,128 @@ This creates a sandbox limiting file access to only that directory and its subdi
 4. Set your Gemini API key:
    ```bash
    export GEMINI_API_KEY="your-api-key-here"
+   ```
+
+### Option 2: Docker Installation (Network Mode)
+
+Run the server in a Docker container with network access, removing the dependency on Claude Desktop:
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/BeehiveInnovations/gemini-mcp-server.git
+   cd gemini-mcp-server
+   ```
+
+2. Create a `.env` file with your API key:
+   ```bash
+   GEMINI_API_KEY=your-api-key-here
+   # Optional: Use a different port (default is 8000)
+   # HOST_PORT=8080
+   ```
+
+3. Start the server:
+   ```bash
+   # macOS/Linux
+   ./run_docker.sh
+   
+   # Windows
+   run_docker.bat
+   ```
+
+4. Connect to the server:
+   
+   **For Claude Desktop configuration:**
+   ```json
+   {
+     "mcpServers": {
+       "gemini": {
+         "url": "http://localhost:8000",
+         "transport": "sse"
+       }
+     }
+   }
+   ```
+   
+   **For Claude Code:**
+   ```bash
+   # Default port 8000
+   claude mcp add --transport sse gemini http://localhost:8000/sse
+   
+   # Custom port (if you changed HOST_PORT in .env)
+   claude mcp add --transport sse gemini http://localhost:8899/sse
+   ```
+
+The Docker setup:
+- Runs the server on `http://localhost:8000` by default
+- Configurable port via `HOST_PORT` in `.env` file
+- Mounts your home directory as read-only for file access (configurable via `DOCKER_MOUNT_DIR`)
+- No authentication required (local use only)
+- Works with any MCP client that supports SSE transport
+
+#### Changing the Port
+
+If port 8000 is already in use, you can change it in your `.env` file:
+
+```bash
+# .env
+GEMINI_API_KEY=your-api-key-here
+HOST_PORT=8080  # Use port 8080 instead
+```
+
+Then update your MCP client configuration to use the new port.
+
+#### Docker Environment Variables
+
+The Docker setup supports several environment variables for customization:
+
+```bash
+# .env
+GEMINI_API_KEY=your-api-key-here
+
+# Change the host port (default: 8000)
+HOST_PORT=8080
+
+# Mount a specific directory instead of entire home directory
+# Default: mounts your home directory ($HOME)
+DOCKER_MOUNT_DIR=/path/to/your/project
+
+# Set project root for file sandboxing inside the container
+# This restricts file access to only this directory
+MCP_PROJECT_ROOT=/home/project
+```
+
+#### Docker Path Mapping
+
+When using Docker, file paths work differently:
+
+1. **Host Machine Paths** → **Container Paths**
+   - Your files: `/Users/you/project/` → `/home/project/`
+   - Home directory: `$HOME` → `/home`
+   - Custom mount: `$DOCKER_MOUNT_DIR` → `/home`
+
+2. **Using MCP_PROJECT_ROOT with Docker**
+   ```bash
+   # Example: You have a project at ~/dev/myproject
+   
+   # In .env file:
+   DOCKER_MOUNT_DIR=/Users/you/dev/myproject
+   MCP_PROJECT_ROOT=/home
+   ```
+   
+   This configuration:
+   - Mounts only `/Users/you/dev/myproject` from host
+   - Maps it to `/home` inside the container
+   - Restricts tool access to only files under `/home`
+
+3. **Path Examples for Tools**
+   When Gemini tools reference files, use the container paths:
+   ```
+   # If your file is at: ~/dev/myproject/src/main.py
+   # And DOCKER_MOUNT_DIR=/Users/you/dev/myproject
+   
+   # Gemini will see it as: /home/src/main.py
+   "Use gemini to review /home/src/main.py"
+   "Get gemini to analyze /home/tests/"
    ```
 
 ## How System Prompts Work

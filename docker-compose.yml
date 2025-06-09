@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  gemini-mcp:
+    build: .
+    container_name: gemini-mcp-server
+    ports:
+      - "${HOST_PORT:-8000}:8000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      # Optional: Set a specific project root for sandboxing
+      # - MCP_PROJECT_ROOT=/home/project
+    volumes:
+      # Mount directory as read-only
+      # Default: home directory ($HOME)
+      # Set DOCKER_MOUNT_DIR in .env to mount a different directory
+      - ${DOCKER_MOUNT_DIR:-${HOME}}:/home:ro
+      # Optional: Mount specific project directories with write access
+      # - ./projects:/projects:rw
+    restart: unless-stopped
+    # Health check to ensure the server is running
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
